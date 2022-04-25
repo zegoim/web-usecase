@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Zego Express Video Call</title>
+    <!-- 此处需要改成正确的 SDK 版本号 -->
+    <script src="./dist_js/ZegoExpressWebRTC-2.12.3.js"></script>
+    <script src="./jquery.min.js"></script>
+    <style type="text/css">
+        .video-wrapper {
+            width: 610px;
+            margin-top: 12px;
+        }
+
+        video::-webkit-media-controls-timeline {
+            display: none;
+        }
+
+        video::-webkit-media-controls-volume-slider {
+            display: none;
+        }
+
+        video::-webkit-media-controls-current-time-display {
+            display: none;
+        }
+
+        video::-webkit-media-controls-time-remaining-display {
+            display: none;
+        }
+
+        .video-wrapper div,
+        video {
+            width: 300px;
+            display: inline-block;
+            left: 0px;
+            position: relative;
+
+        }
+    </style>
+</head>
+
+<body style="padding-left: 200px;padding-top: 50px;">
+    <div>AppID <span style="font-size: 12px;color: grey;margin-left: 8px;"><a
+                href="https://doc-zh.zego.im/article/12107">即构控制台</a>>概览>我的项目>查看项目信息>AppID</span></div>
+    <input style="margin-bottom: 12px;" type="text" name="AppID" id="AppID" value="401189757"><br>
+    <div><span>RoomID</span><span style="font-size: small;color:grey;"> 由开发者定义，用户在同一房间里才能进行视频通话</span></div>
+    <input style="margin-bottom: 12px;" required="required" type="text" name="RoomID" id="RoomID" value="room1">
+    <div>
+        <span>UserID</span><span style="font-size: small;color:grey;"> 由开发者定义，一个用户对应一个唯一的 userID</span>
+    </div>
+    <input style="margin-bottom: 12px;" required="required" type="text" name="UserID" id="UserID" value="user_stream1"
+        oninput="onUserIDChange()">
+    <br>
+    <button style="width: 200px;color: blue;" type="submit" onclick="onClickLogin()">登录</button>
+    <button style="width: 200px; color: crimson;" type="submit" onclick="onClickLogout()">退出</button>
+    <br>
+    <span style="font-size: small;color:grey;"> 在本页面中，登录后会自动推送音视频（推流），退出后停止推送音视频</span>
+    <div style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
+        id="RoomStatus">未连接</div>
+
+    <h2>
+        基础视频通话
+    </h2>
+    <div><span>Publish StreamID</span><span style="font-size: small;color:grey;"> 本地推送的音视频流的 streamID，在这个 demo 中我们设置为和
+            userID
+            一样，实际开发过程中可以更改</span></div>
+    <input type="text" name="StreamID" id="StreamID" value="user_stream1">
+
+    <div class="video-wrapper">
+        <div>本地用户（我）的视频 <span style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
+            id="PublishStatus">未推送音视频流</span></div>
+        
+        <div id="remotestreamID">新加入房间的用户的视频</div>
+        <video style="height: 200px;width: 300px;" id="local-video" autoplay muted playsinline controls></video>
+        <video style="height: 200px;width: 300px;" id="remote-video" autoplay muted playsinline controls></video>
+    </div>
+    <br><br>
+    <h2>
+        拉取指定 StreamID 的音视频流
+    </h2>
+
+    <span>Playing StreamID</span>
+    <input type="text" name="StreamID" id="SomeStreamID" value=""> <br><br>
+    <button style="width: 200px;color: blue;display: block;" type="submit"
+        onclick="onClickPlayingStream()">拉流播放</button>
+    <button style="width: 200px;color: red;display: block;" type="submit"
+        onclick="onClickStopPlayingStream()">停止拉流</button>
+    <br> <br>
+
+    <video id="somevideo" autoplay muted playsinline controls></video>
+    <script>
+        var appID = document.getElementById("AppID").value;
+
+        var server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
+        // 初始化实例
+        var zg = new ZegoExpressEngine(Number(appID), server);
+        function onUserIDChange() {
+            const value = $("#UserID").val();
+            $("#StreamID").val(value);
+        }
+        function onClickLogout() {
+            zg.logoutRoom();
+            var streamID = $("#SomeStreamID").val();
+            zg.stopPlayingStream(streamID);
+            const remoteVideo = document.getElementById('local-video');
+            remoteVideo.srcObject = null;
+            $("#PublishStatus").text('未推送音视频流');
+        }
+
+        function onClickPublishingStream() {
+            // 创建流、预览
+            // 调用 createStream 接口后，需要等待 ZEGO 服务器返回流媒体对象才能执行后续操作
+            zg.createStream().then(localStream => {
+                // 获取页面的 video 标签
+                const localVideo = document.getElementById('local-video');
+                // stream 为MediaStream对象，开发者可通过赋值给video或audio的srcObject属性进行渲染
+                localVideo.srcObject = localStream;
+                // 开始推流，将自己的音视频流推送到 ZEGO 音视频云，此处 streamID 由用户定义，需全局唯一
+                let streamID = $("#StreamID").val();
+                zg.startPublishingStream(streamID, localStream)
+            });
+
+        }
+
+        function onClickPlayingStream() {
+            var streamID = $("#SomeStreamID").val();
+            zg.startPlayingStream(streamID).then(remoteStream => {
+                const remoteVideo = document.getElementById('somevideo');
+                remoteVideo.srcObject = remoteStream;
+            }).catch(result => {
+                debugger
+                if (result['code'] != 0) {
+                    alert(result['message']);
+                }
+            });
+
+        }
+        function onClickStopPlayingStream() {
+            var streamID = $("#SomeStreamID").val();
+            zg.stopPlayingStream(streamID);
+            const remoteVideo = document.getElementById('somevideo');
+            remoteVideo.srcObject = null;
+        }
+
+        function onClickLogin() {
+            appID = document.getElementById("AppID").value;
+            if (appID == '') {
+                alert('appID 不能为空，请从控制台获取 appID 粘贴到此处'); return;
+            }
+            server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
+            zg = new ZegoExpressEngine(Number(appID), server);
+
+            // wss://webliveroom3668591668-api.imzego.com/ws
+            var roomID = document.getElementById("RoomID").value; // roomID 用户自己设置，必须保证全局唯一
+            var userID = document.getElementById("UserID").value;
+            var userName = document.getElementById("UserID").value;// userName 用户自己设置，没有唯一性要求
+            var tokenRequestUrl = "https://wsliveroom-alpha.zego.im:8282/token?app_id=" + appID + "&id_name=" + userID;
+            if (roomID == '') {
+                alert('roomID 不能为空，请填写一个roomID，如 room1'); return;
+            }
+            if (userID == '') {
+                alert('userID 不能为空，请填写一个 userID，如 user1'); return;
+            }
+            $.get(tokenRequestUrl, function (token, status) {
+                console.log('token=', token);
+                zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
+                    if (result == true) {
+                        console.log("login success");
+                        alert("登录成功")
+                        zg.createStream().then(localStream => {
+                            const localVideo = document.getElementById('local-video');
+                            localVideo.srcObject = localStream;
+                            let streamID = $("#StreamID").val();
+                            zg.startPublishingStream(streamID, localStream)
+                        });
+
+                    } else {
+                        alert("登录失败")
+                    }
+                });
+
+            });
+            // 房间状态更新回调
+            // 此处在登录房间成功后，立即进行推流。在实现具体业务时，您可选择其他时机进行推流，只要保证当前房间连接状态是连接成功的即可。
+            // 房间状态更新回调
+            zg.on('roomStateUpdate', async (roomID, state, errorCode, extendedData) => {
+                if (state == 'CONNECTED') {
+                    $("#RoomStatus").text('房间连接成功');
+                } else if (state == 'DISCONNECTED') {
+                    $("#RoomStatus").text('房间已断开');
+                } else if (state == 'CONNECTING') {
+                    $("#RoomStatus").text('房间连接中');
+                }
+            })
+
+            zg.on('roomUserUpdate', (roomID, updateType, userList) => {
+                // 其他用户进出房间的通知
+            });
+
+            zg.on('publisherStateUpdate', result => {
+                // 推流状态更新回调
+                var state = result['state']
+                var streamID = result['streamID']
+                var errorCode = result['errorCode']
+                var extendedData = result['extendedData']
+                if (state == 'PUBLISHING') {
+                    $("#PublishStatus").text('成功推送音视频');
+                } else if (state == 'NO_PUBLISH') {
+                    $("#PublishStatus").text('未推送音视频流');
+                } else if (state == 'PUBLISH_REQUESTING') {
+                    $("#PublishStatus").text('请求推送音视频流');
+                }
+            })
+
+            zg.on('playerStateUpdate', result => {
+                // 拉流状态更新回调
+                // ...
+            })
+
+            zg.on('IMRecvBroadcastMessage', (roomID, chatData) => {
+                console.log('广播消息IMRecvBroadcastMessage', roomID, chatData[0].message);
+                alert(chatData[0].message)
+            });
+            zg.on('IMRecvBarrageMessage', (roomID, chatData) => {
+                console.log('弹幕消息IMRecvBroadcastMessage', roomID, chatData[0].message);
+                alert(chatData[0].message)
+            });
+
+            zg.on('IMRecvCustomCommand', (roomID, fromUser, command) => {
+                console.log('自定义消息IMRecvCustomCommand', roomID, fromUser, command);
+                alert(command)
+            });
+
+            zg.on('roomStreamUpdate', async (roomID, updateType, streamList, extendedData) => {
+                // 房间内其他用户音视频流变化的通知
+                if (updateType == 'ADD') {
+                    // 流新增，开始拉流
+                    // 此处演示拉取流新增的列表中第一条流的音视频
+                    const streamID = streamList[0].streamID;
+                    console.log(streamID);
+                    // streamList 中有对应流的 streamID
+                    const remoteStream = await zg.startPlayingStream(streamID);
+                    // remoteVideo为本地<video>或<audio>对象
+                    const remoteVideo = document.getElementById('remote-video');
+
+                    const message = "其他用户的视频流streamID: " + streamID.toString();
+                    $("#remotestreamID").text(message);
+                    // remoteVideo 为 MediaStream 对象，开发者可通过赋值给video或audio标签元素的srcObject属性进行渲染
+                    remoteVideo.srcObject = remoteStream;
+                } else if (updateType == 'DELETE') {
+                    // 流删除，通过流删除列表 streamList 中每个流的 streamID 进行停止拉流。
+                    const streamID = streamList[0].streamID;
+                    zg.stopPlayingStream(streamID)
+                }
+            });
+        }
+
+    </script>
+</body>
+
+</html>
