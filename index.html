@@ -55,7 +55,7 @@
     <div>
         <span>UserID</span><span style="font-size: small;color:grey;"> 由开发者定义，一个用户对应一个唯一的 userID</span>
     </div>
-    <input style="margin-bottom: 12px;" required="required" type="text" name="UserID" id="UserID" value="user1"
+    <input style="margin-bottom: 12px;" required="required" type="text" name="UserID" id="UserID" value=""
         oninput="onUserIDChange()">
 
     <div><span>RoomID</span><span style="font-size: small;color:grey;"> 由开发者定义，用户在同一房间里才能进行视频通话</span></div>
@@ -108,6 +108,18 @@
         var server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
         // 初始化实例
         var zg;
+
+        var saved_appID = localStorage.getItem("AppID")
+        var saved_serverSecret = localStorage.getItem("ServerSecret")
+        var saved_userID = localStorage.getItem("UserID")
+        if (saved_userID == null || saved_userID == '') {
+            saved_userID = `user_${Math.ceil(Math.random()*100)}`;
+        }
+        $("#AppID").val(saved_appID);
+        $("#ServerSecret").val(saved_serverSecret);
+        $("#UserID").val(saved_userID);
+        $("#StreamID").val(saved_userID);
+
         function onUserIDChange() {
             const value = $("#UserID").val();
             $("#StreamID").val(value);
@@ -200,6 +212,10 @@
                 $("#RoomUserUpdate").text('');
                 alert("登录失败, 可能是 token 错误")
             });
+
+            localStorage.setItem("AppID",appID)
+            localStorage.setItem("ServerSecret",serverSecret)
+            localStorage.setItem("UserID",userID)
 
             // 房间状态更新回调
             // 此处在登录房间成功后，立即进行推流。在实现具体业务时，您可选择其他时机进行推流，只要保证当前房间连接状态是连接成功的即可。
