@@ -102,12 +102,12 @@
 
     <video id="somevideo" autoplay muted playsinline controls></video>
     <script>
-        var appID = document.getElementById("AppID").value;
-        var serverSecret = document.getElementById("ServerSecret").value;
+        var appID;
+        var serverSecret;
 
         var server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
         // 初始化实例
-        var zg = new ZegoExpressEngine(Number(appID), server);
+        var zg;
         function onUserIDChange() {
             const value = $("#UserID").val();
             $("#StreamID").val(value);
@@ -161,7 +161,10 @@
             appID = document.getElementById("AppID").value;
             serverSecret = document.getElementById("ServerSecret").value;
             if (appID == '') {
-                alert('appID 不能为空，请从控制台获取 appID 粘贴到此处'); return;
+                alert('AppID 不能为空，请从控制台获取 AppID 粘贴到此处'); return;
+            }
+            if (serverSecret == '') {
+                alert('ServerSecret 不能为空，请从控制台获取 ServerSecret 粘贴到此处'); return;
             }
             server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
             zg = new ZegoExpressEngine(Number(appID), server);
