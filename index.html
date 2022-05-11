@@ -7,6 +7,8 @@
     <!-- 此处需要改成正确的 SDK 版本号 -->
     <script src="./dist_js/ZegoExpressWebRTC-2.12.3.js"></script>
     <script src="./jquery.min.js"></script>
+    <script type="text/javascript" src="token_util/crypto-js.min.js"></script>
+    <script type="text/javascript" src="token_util/token.js"></script>
     <style type="text/css">
         .video-wrapper {
             width: 610px;
@@ -43,7 +45,11 @@
 <body style="padding-left: 200px;padding-top: 50px;">
     <div>AppID <span style="font-size: 12px;color: grey;margin-left: 8px;"><a
                 href="https://doc-zh.zego.im/article/12107">即构控制台</a>>概览>我的项目>查看项目信息>AppID</span></div>
-    <input style="margin-bottom: 12px;" type="text" name="AppID" id="AppID" value="401189757"><br>
+    <input style="margin-bottom: 12px;" type="text" name="AppID" id="AppID" value="876745761"><br>
+    <div>ServerSecret <span style="font-size: 12px;color: grey;margin-left: 8px;"><a
+                href="https://doc-zh.zego.im/article/12107">即构控制台</a>>概览>我的项目>查看项目信息>ServerSecret</span></div>
+    <input style="margin-bottom: 12px;" type="text" name="ServerSecret" id="ServerSecret" value="7da0656697e853647ae0851313aa6fed"><br>
+
     <div><span>RoomID</span><span style="font-size: small;color:grey;"> 由开发者定义，用户在同一房间里才能进行视频通话</span></div>
     <input style="margin-bottom: 12px;" required="required" type="text" name="RoomID" id="RoomID" value="room1">
     <div>
@@ -68,9 +74,10 @@
     <input type="text" name="StreamID" id="StreamID" value="user_stream1">
 
     <div class="video-wrapper">
-        <div>本地用户（我）的视频 <span style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
-            id="PublishStatus">未推送音视频流</span></div>
-        
+        <div>本地用户（我）的视频 <span
+                style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
+                id="PublishStatus">未推送音视频流</span></div>
+
         <div id="remotestreamID">新加入房间的用户的视频</div>
         <video style="height: 200px;width: 300px;" id="local-video" autoplay muted playsinline controls></video>
         <video style="height: 200px;width: 300px;" id="remote-video" autoplay muted playsinline controls></video>
@@ -91,6 +98,7 @@
     <video id="somevideo" autoplay muted playsinline controls></video>
     <script>
         var appID = document.getElementById("AppID").value;
+        var serverSecret = document.getElementById("ServerSecret").value;
 
         var server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
         // 初始化实例
@@ -162,25 +170,43 @@
             if (userID == '') {
                 alert('userID 不能为空，请填写一个 userID，如 user1'); return;
             }
-            $.get(tokenRequestUrl, function (token, status) {
-                console.log('token=', token);
-                zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
-                    if (result == true) {
-                        console.log("login success");
-                        alert("登录成功")
-                        zg.createStream().then(localStream => {
-                            const localVideo = document.getElementById('local-video');
-                            localVideo.srcObject = localStream;
-                            let streamID = $("#StreamID").val();
-                            zg.startPublishingStream(streamID, localStream)
-                        });
+            var token = generateToken(+appID, serverSecret, userID, 36000);
+            zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
+                if (result == true) {
+                    console.log("login success");
+                    alert("登录成功")
+                    zg.createStream().then(localStream => {
+                        const localVideo = document.getElementById('local-video');
+                        localVideo.srcObject = localStream;
+                        let streamID = $("#StreamID").val();
+                        zg.startPublishingStream(streamID, localStream)
+                    });
 
-                    } else {
-                        alert("登录失败")
-                    }
-                });
+                } else {
+                    alert("登录失败, 错误信息：", result)
+                }
+            }).catch(err => {
+                
+            }) ;
+            // $.get(tokenRequestUrl, function (token, status) {
+            //     console.log('token=', token);
+            //     zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
+            //         if (result == true) {
+            //             console.log("login success");
+            //             alert("登录成功")
+            //             zg.createStream().then(localStream => {
+            //                 const localVideo = document.getElementById('local-video');
+            //                 localVideo.srcObject = localStream;
+            //                 let streamID = $("#StreamID").val();
+            //                 zg.startPublishingStream(streamID, localStream)
+            //             });
 
-            });
+            //         } else {
+            //             alert("登录失败")
+            //         }
+            //     });
+
+            // });
             // 房间状态更新回调
             // 此处在登录房间成功后，立即进行推流。在实现具体业务时，您可选择其他时机进行推流，只要保证当前房间连接状态是连接成功的即可。
             // 房间状态更新回调
