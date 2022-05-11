@@ -43,20 +43,24 @@
 </head>
 
 <body style="padding-left: 200px;padding-top: 50px;">
-    <div>AppID <span style="font-size: 12px;color: grey;margin-left: 8px;"><a
-                href="https://doc-zh.zego.im/article/12107">即构控制台</a>>概览>我的项目>查看项目信息>AppID</span></div>
-    <input style="margin-bottom: 12px;" type="text" name="AppID" id="AppID" value="876745761"><br>
-    <div>ServerSecret <span style="font-size: 12px;color: grey;margin-left: 8px;"><a
-                href="https://doc-zh.zego.im/article/12107">即构控制台</a>>概览>我的项目>查看项目信息>ServerSecret</span></div>
-    <input style="margin-bottom: 12px;" type="text" name="ServerSecret" id="ServerSecret" value="7da0656697e853647ae0851313aa6fed"><br>
+    <div>AppID <span style="font-size: 12px;color: grey;margin-left: 8px;"><a href="https://console.zego.im"
+                target="_blank">即构控制台</a>>概览>我的项目>查看>AppID</span></div>
+    <input style="margin-bottom: 12px;width: 400px;" type="text" name="AppID" id="AppID" value=""
+        placeholder="填写你的项目的AppID，从控制台获取"><br>
+    <div>ServerSecret <span style="font-size: 12px;color: grey;margin-left: 8px;"><a href="https://console.zego.im"
+                target="_blank">即构控制台</a>>概览>我的项目>查看>ServerSecret</span></div>
+    <input style="margin-bottom: 12px;width: 400px;" type="text" name="ServerSecret" id="ServerSecret"
+        value="" placeholder="填写你的项目的ServerSecret，从控制台获取"><br>
 
-    <div><span>RoomID</span><span style="font-size: small;color:grey;"> 由开发者定义，用户在同一房间里才能进行视频通话</span></div>
-    <input style="margin-bottom: 12px;" required="required" type="text" name="RoomID" id="RoomID" value="room1">
     <div>
         <span>UserID</span><span style="font-size: small;color:grey;"> 由开发者定义，一个用户对应一个唯一的 userID</span>
     </div>
-    <input style="margin-bottom: 12px;" required="required" type="text" name="UserID" id="UserID" value="user_stream1"
+    <input style="margin-bottom: 12px;" required="required" type="text" name="UserID" id="UserID" value="user1"
         oninput="onUserIDChange()">
+
+    <div><span>RoomID</span><span style="font-size: small;color:grey;"> 由开发者定义，用户在同一房间里才能进行视频通话</span></div>
+    <input style="margin-bottom: 12px;" required="required" type="text" name="RoomID" id="RoomID" value="room1">
+
     <br>
     <button style="width: 200px;color: blue;" type="submit" onclick="onClickLogin()">登录</button>
     <button style="width: 200px; color: crimson;" type="submit" onclick="onClickLogout()">退出</button>
@@ -64,6 +68,7 @@
     <span style="font-size: small;color:grey;"> 在本页面中，登录后会自动推送音视频（推流），退出后停止推送音视频</span>
     <div style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
         id="RoomStatus">未连接</div>
+    <span style="font-size: 12px;margin-top: 12px;width: fit-content;color: rgb(159, 158, 158);" id="RoomUserUpdate"></span>
 
     <h2>
         基础视频通话
@@ -71,7 +76,7 @@
     <div><span>Publish StreamID</span><span style="font-size: small;color:grey;"> 本地推送的音视频流的 streamID，在这个 demo 中我们设置为和
             userID
             一样，实际开发过程中可以更改</span></div>
-    <input type="text" name="StreamID" id="StreamID" value="user_stream1">
+    <input type="text" name="StreamID" id="StreamID" value="user1">
 
     <div class="video-wrapper">
         <div>本地用户（我）的视频 <span
@@ -114,6 +119,7 @@
             const remoteVideo = document.getElementById('local-video');
             remoteVideo.srcObject = null;
             $("#PublishStatus").text('未推送音视频流');
+            $("#RoomUserUpdate").text('');
         }
 
         function onClickPublishingStream() {
@@ -153,6 +159,7 @@
 
         function onClickLogin() {
             appID = document.getElementById("AppID").value;
+            serverSecret = document.getElementById("ServerSecret").value;
             if (appID == '') {
                 alert('appID 不能为空，请从控制台获取 appID 粘贴到此处'); return;
             }
@@ -174,6 +181,7 @@
             zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
                 if (result == true) {
                     console.log("login success");
+                    $("#RoomUserUpdate").text('');
                     alert("登录成功")
                     zg.createStream().then(localStream => {
                         const localVideo = document.getElementById('local-video');
@@ -186,27 +194,10 @@
                     alert("登录失败, 错误信息：", result)
                 }
             }).catch(err => {
-                
-            }) ;
-            // $.get(tokenRequestUrl, function (token, status) {
-            //     console.log('token=', token);
-            //     zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
-            //         if (result == true) {
-            //             console.log("login success");
-            //             alert("登录成功")
-            //             zg.createStream().then(localStream => {
-            //                 const localVideo = document.getElementById('local-video');
-            //                 localVideo.srcObject = localStream;
-            //                 let streamID = $("#StreamID").val();
-            //                 zg.startPublishingStream(streamID, localStream)
-            //             });
+                $("#RoomUserUpdate").text('');
+                alert("登录失败, 可能是 token 错误")
+            });
 
-            //         } else {
-            //             alert("登录失败")
-            //         }
-            //     });
-
-            // });
             // 房间状态更新回调
             // 此处在登录房间成功后，立即进行推流。在实现具体业务时，您可选择其他时机进行推流，只要保证当前房间连接状态是连接成功的即可。
             // 房间状态更新回调
@@ -215,6 +206,7 @@
                     $("#RoomStatus").text('房间连接成功');
                 } else if (state == 'DISCONNECTED') {
                     $("#RoomStatus").text('房间已断开');
+                    $("#RoomUserUpdate").text('');
                 } else if (state == 'CONNECTING') {
                     $("#RoomStatus").text('房间连接中');
                 }
@@ -222,6 +214,13 @@
 
             zg.on('roomUserUpdate', (roomID, updateType, userList) => {
                 // 其他用户进出房间的通知
+                if (updateType == 'ADD') {
+                    $("#RoomUserUpdate").text(`用户 ${userList[0]['userID']} 加入了房间`);
+                } else if (updateType == 'DELETE') {
+                    $("#RoomUserUpdate").text(`用户 ${userList[0]['userID']} 退出了房间`);
+                }
+
+
             });
 
             zg.on('publisherStateUpdate', result => {
@@ -282,6 +281,19 @@
             });
         }
 
+        function toast(msg, duration) {
+            duration = isNaN(duration) ? 3000 : duration;
+            var m = document.createElement('div');
+            m.innerHTML = msg;
+            m.style.cssText = "width: 300px;min-width: 150px;opacity: 0.7;height: 30px;color: rgb(255, 255, 255);line-height: 30px;text-align: center;border-radius: 5px;position: fixed;top: 40%;left: 20%;z-index: 999999;background: rgb(0, 0, 0);font-size: 12px;";
+            document.body.appendChild(m);
+            setTimeout(function () {
+                var d = 0.5;
+                m.style.webkitTransition = '-webkit-transform ' + d + 's ease-in, opacity ' + d + 's ease-in';
+                m.style.opacity = '0';
+                setTimeout(function () { document.body.removeChild(m) }, d * 1000);
+            }, duration);
+        }
     </script>
 </body>
 
