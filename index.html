@@ -181,11 +181,9 @@
             server = "wss://webliveroom" + appID + "-api.imzego.com/ws";
             zg = new ZegoExpressEngine(Number(appID), server);
 
-            // wss://webliveroom3668591668-api.imzego.com/ws
             var roomID = document.getElementById("RoomID").value; // roomID 用户自己设置，必须保证全局唯一
             var userID = document.getElementById("UserID").value;
             var userName = document.getElementById("UserID").value;// userName 用户自己设置，没有唯一性要求
-            var tokenRequestUrl = "https://wsliveroom-alpha.zego.im:8282/token?app_id=" + appID + "&id_name=" + userID;
             if (roomID == '') {
                 alert('roomID 不能为空，请填写一个roomID，如 room1'); return;
             }
