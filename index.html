@@ -10,11 +10,6 @@
     <script type="text/javascript" src="token_util/crypto-js.min.js"></script>
     <script type="text/javascript" src="token_util/token.js"></script>
     <style type="text/css">
-        .video-wrapper {
-            width: 610px;
-            margin-top: 12px;
-        }
-
         video::-webkit-media-controls-timeline {
             display: none;
         }
@@ -30,14 +25,8 @@
         video::-webkit-media-controls-time-remaining-display {
             display: none;
         }
-
-        .video-wrapper div,
         video {
-            width: 300px;
-            display: inline-block;
-            left: 0px;
-            position: relative;
-
+            width: 280px;
         }
     </style>
 </head>
@@ -49,8 +38,8 @@
         placeholder="填写你的项目的AppID，从控制台获取"><br>
     <div>ServerSecret <span style="font-size: 12px;color: grey;margin-left: 8px;"><a href="https://console.zego.im"
                 target="_blank">即构控制台</a>>概览>我的项目>查看>ServerSecret</span></div>
-    <input style="margin-bottom: 12px;width: 400px;" type="text" name="ServerSecret" id="ServerSecret"
-        value="" placeholder="填写你的项目的ServerSecret，从控制台获取"><br>
+    <input style="margin-bottom: 12px;width: 400px;" type="text" name="ServerSecret" id="ServerSecret" value=""
+        placeholder="填写你的项目的ServerSecret，从控制台获取"><br>
 
     <div>
         <span>UserID</span><span style="font-size: small;color:grey;"> 由开发者定义，一个用户对应一个唯一的 userID</span>
@@ -67,8 +56,9 @@
     <br>
     <span style="font-size: small;color:grey;"> 在本页面中，登录后会自动推送音视频（推流），退出后停止推送音视频</span>
     <div style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
-        id="RoomStatus">未连接</div>
-    <span style="font-size: 12px;margin-top: 12px;width: fit-content;color: rgb(159, 158, 158);" id="RoomUserUpdate"></span>
+        id="RoomStatus">房间未连接</div>
+    <span style="font-size: 12px;margin-top: 12px;width: fit-content;color: rgb(159, 158, 158);"
+        id="RoomUserUpdate"></span>
 
     <h2>
         基础视频通话
@@ -78,16 +68,14 @@
             一样，实际开发过程中可以更改</span></div>
     <input type="text" name="StreamID" id="StreamID" value="user1">
 
-    <div class="video-wrapper">
-        <div>本地用户（我）的视频 <span
-                style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
-                id="PublishStatus">未推送音视频流</span></div>
-
-        <div id="remotestreamID">新加入房间的用户的视频</div>
-        <video style="height: 200px;width: 300px;" id="local-video" autoplay muted playsinline controls></video>
-        <video style="height: 200px;width: 300px;" id="remote-video" autoplay muted playsinline controls></video>
-    </div>
+    <div style="margin-top: 20px;">本地用户（我）的视频 <span
+            style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
+            id="PublishStatus">未推送音视频流</span></div>
+    <video style="height: 200px;width: 300px;" id="local-video" autoplay muted playsinline controls></video>
     <br><br>
+    <div id="remotestreamID"></div>
+    <div id="remoteCon"></div>
+    <hr style="margin-top: 30px;margin-bottom: 20px;">
     <h2>
         拉取指定 StreamID 的音视频流
     </h2>
@@ -113,12 +101,13 @@
         var saved_serverSecret = localStorage.getItem("ServerSecret")
         var saved_userID = localStorage.getItem("UserID")
         if (saved_userID == null || saved_userID == '') {
-            saved_userID = `user_${Math.ceil(Math.random()*100)}`;
+            saved_userID = `user_${Math.ceil(Math.random() * 100)}`;
         }
         $("#AppID").val(saved_appID);
         $("#ServerSecret").val(saved_serverSecret);
         $("#UserID").val(saved_userID);
         $("#StreamID").val(saved_userID);
+        
 
         function onUserIDChange() {
             const value = $("#UserID").val();
@@ -132,6 +121,9 @@
             remoteVideo.srcObject = null;
             $("#PublishStatus").text('未推送音视频流');
             $("#RoomUserUpdate").text('');
+            $("#remotestreamID").text('');
+            document.querySelector("#remoteCon").innerHTML = ""
+
         }
 
         function onClickPublishingStream() {
@@ -211,9 +203,9 @@
                 alert("登录失败, 可能是 token 错误")
             });
 
-            localStorage.setItem("AppID",appID)
-            localStorage.setItem("ServerSecret",serverSecret)
-            localStorage.setItem("UserID",userID)
+            localStorage.setItem("AppID", appID)
+            localStorage.setItem("ServerSecret", serverSecret)
+            localStorage.setItem("UserID", userID)
 
             // 房间状态更新回调
             // 此处在登录房间成功后，立即进行推流。在实现具体业务时，您可选择其他时机进行推流，只要保证当前房间连接状态是连接成功的即可。
@@ -275,27 +267,39 @@
             });
 
             zg.on('roomStreamUpdate', async (roomID, updateType, streamList, extendedData) => {
-                // 房间内其他用户音视频流变化的通知
-                if (updateType == 'ADD') {
-                    // 流新增，开始拉流
-                    // 此处演示拉取流新增的列表中第一条流的音视频
-                    const streamID = streamList[0].streamID;
-                    console.log(streamID);
-                    // streamList 中有对应流的 streamID
-                    const remoteStream = await zg.startPlayingStream(streamID);
-                    // remoteVideo为本地<video>或<audio>对象
-                    const remoteVideo = document.getElementById('remote-video');
 
-                    const message = "其他用户的视频流streamID: " + streamID.toString();
-                    $("#remotestreamID").text(message);
-                    // remoteVideo 为 MediaStream 对象，开发者可通过赋值给video或audio标签元素的srcObject属性进行渲染
-                    remoteVideo.srcObject = remoteStream;
-                } else if (updateType == 'DELETE') {
-                    // 流删除，通过流删除列表 streamList 中每个流的 streamID 进行停止拉流。
-                    const streamID = streamList[0].streamID;
-                    zg.stopPlayingStream(streamID)
+                if (updateType === "ADD") {
+                    streamList.forEach((stream) => {
+                        // 拉流渲染
+                        startPlay(stream.streamID)
+                    })
+                } else {
+                    streamList.forEach((stream) => {
+                        // 拉流删除
+                        deletePlayer(stream.streamID)
+                    })
                 }
             });
+        }
+
+        async function startPlay(streamID) {
+            const stream = await zg.startPlayingStream(streamID)
+            const video = document.createElement("video")
+            video.id = streamID
+            video.autoplay = true
+            video.muted = true
+            video.controls = true
+            video.playsinline = true
+            document.querySelector("#remoteCon").appendChild(video)
+
+            $("#remotestreamID").text('房间内其他用户的视频流');
+
+            video.srcObject = stream
+        }
+
+        async function deletePlayer(streamID) {
+            await zg.stopPlayingStream(streamID)
+            document.querySelector(`#${streamID}`).remove()
         }
 
         function toast(msg, duration) {
