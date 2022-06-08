@@ -68,11 +68,10 @@
             一样，实际开发过程中可以更改</span></div>
     <input type="text" name="StreamID" id="StreamID" value="user1">
 
-    <div style="margin-top: 20px;">本地用户（我）的视频 <span
+    <div style="margin-top: 20px;">本地用户（我）的视频： <span
             style="background-color: aliceblue;color: #f97885fc;font-size: 12px;margin-top: 12px;width: fit-content;"
             id="PublishStatus">未推送音视频流</span></div>
     <video style="height: 200px;width: 300px;" id="local-video" autoplay muted playsinline controls></video>
-    <br><br>
     <div id="remotestreamID"></div>
     <div id="remoteCon"></div>
     <hr style="margin-top: 30px;margin-bottom: 20px;">
@@ -99,10 +98,7 @@
 
         var saved_appID = localStorage.getItem("AppID")
         var saved_serverSecret = localStorage.getItem("ServerSecret")
-        var saved_userID = localStorage.getItem("UserID")
-        if (saved_userID == null || saved_userID == '') {
-            saved_userID = `user_${Math.ceil(Math.random() * 100)}`;
-        }
+        var saved_userID = `user_${Math.ceil(Math.random() * 1000)}`;
         $("#AppID").val(saved_appID);
         $("#ServerSecret").val(saved_serverSecret);
         $("#UserID").val(saved_userID);
@@ -183,6 +179,7 @@
                 alert('userID 不能为空，请填写一个 userID，如 user1'); return;
             }
             var token = generateToken(+appID, serverSecret, userID, 36000);
+        
             zg.loginRoom(roomID, token, { userID, userName: userName }, { userUpdate: true }).then(result => {
                 if (result == true) {
                     console.log("login success");
@@ -200,7 +197,7 @@
                 }
             }).catch(err => {
                 $("#RoomUserUpdate").text('');
-                alert("登录失败, 可能是 token 错误")
+                alert("登录失败: ", +err)
             });
 
             localStorage.setItem("AppID", appID)
@@ -292,7 +289,7 @@
             video.playsinline = true
             document.querySelector("#remoteCon").appendChild(video)
 
-            $("#remotestreamID").text('房间内其他用户的视频流');
+            $("#remotestreamID").text('房间内其他用户的视频流：');
 
             video.srcObject = stream
         }
